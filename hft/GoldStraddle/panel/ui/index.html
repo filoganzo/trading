@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>GoldStraddle - XAUUSD Panel</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-bridge="boot" data-ea="absent" data-armed="0">
+
+<!-- ============================================================
+     Inline SVG icon sprite. Authored here, no network requests.
+     ============================================================ -->
+<svg id="sprite" aria-hidden="true" focusable="false">
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l.9 12.5h9.2L17.5 7M10 10.5v6M14 10.5v6"/></symbol>
+  <symbol id="i-grip" viewBox="0 0 24 24"><g fill="currentColor" stroke="none"><circle cx="9.5" cy="6" r="1.35"/><circle cx="14.5" cy="6" r="1.35"/><circle cx="9.5" cy="12" r="1.35"/><circle cx="14.5" cy="12" r="1.35"/><circle cx="9.5" cy="18" r="1.35"/><circle cx="14.5" cy="18" r="1.35"/></g></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V6M6.5 11.5 12 6l5.5 5.5"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v13M6.5 12.5 12 18l5.5-5.5"/></symbol>
+  <symbol id="i-caret-up" viewBox="0 0 24 24"><path d="M6 14.5 12 8.5l6 6"/></symbol>
+  <symbol id="i-caret-down" viewBox="0 0 24 24"><path d="M6 9.5 12 15.5l6-6"/></symbol>
+  <symbol id="i-rearm" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.35-5.66"/><path d="M20.5 4v4h-4"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M9.2 9.2l5.6 5.6M14.8 9.2l-5.6 5.6"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3.6 21 19.5H3z"/><path d="M12 9.2v4.6M12 16.6h.01"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M4.5 12.5 9.5 17.5 19.5 6.5"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M12 7.2V12l3.4 2"/></symbol>
+  <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 3.2v8.4"/><path d="M7.2 6.4a7 7 0 1 0 9.6 0"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13.2 2.5 4.8 14h5.6l-1.2 7.5L19.2 10h-6z"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M12 11v5.4M12 7.9h.01"/></symbol>
+  <symbol id="i-sort" viewBox="0 0 24 24"><path d="M7 4.5v15M3.5 16l3.5 3.5L10.5 16M17 19.5v-15M13.5 8 17 4.5 20.5 8"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><circle cx="12" cy="12" r="3.4"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M4 6.5h16M4 12h16M4 17.5h11"/></symbol>
+</svg>
+
+<div id="app">
+
+  <!-- ==================== HEADER / STATUS BAR ==================== -->
+  <header id="top">
+    <div id="armRail" aria-hidden="true"></div>
+
+    <div class="top-row top-main">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 28 28" aria-hidden="true">
+          <path d="M14 2.6 25 8v12L14 25.4 3 20V8z" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M14 9v10M9.4 11.6h9.2M9.4 16.4h9.2" fill="none" stroke="currentColor" stroke-width="1.4"/>
+        </svg>
+        <div class="brand-txt">
+          <h1>GoldStraddle</h1>
+          <div class="brand-sub"><span id="brandSymbol" class="mono">XAUUSD</span><span class="dot-sep"></span><span id="brandVenue">MT5</span></div>
+        </div>
+      </div>
+
+      <button type="button" id="armBtn" class="arm" aria-pressed="false" aria-describedby="armHint">
+        <span class="arm-led" aria-hidden="true"></span>
+        <span class="arm-body">
+          <span class="arm-text" id="armText">DISARMED</span>
+          <span class="arm-hint" id="armHint">click to arm</span>
+        </span>
+      </button>
+
+      <div class="statuscol">
+        <div class="statusline">
+          <span id="armedLed" class="led led-off" aria-hidden="true"></span>
+          <span id="armedText" class="statustext">no EA state</span>
+          <span id="syncPill" class="pill pill-mute" hidden></span>
+        </div>
+        <div id="blockers" class="chips" aria-live="polite" aria-label="Reasons the EA is not armed"></div>
+      </div>
+
+      <div class="quotes live" id="quotes">
+        <div class="q q-big">
+          <span class="q-lab">BID</span>
+          <span class="q-val mono" id="bidV">&mdash;</span>
+        </div>
+        <div class="q q-big">
+          <span class="q-lab">ASK</span>
+          <span class="q-val mono" id="askV">&mdash;</span>
+        </div>
+        <div class="q">
+          <span class="q-lab">SPREAD</span>
+          <span class="q-val mono" id="spreadV">&mdash;</span>
+        </div>
+        <div class="q-stale" id="quoteStale" hidden>
+          <svg class="i" aria-hidden="true"><use href="#i-alert"/></svg>
+          <span id="quoteStaleText">EA NOT RESPONDING</span>
+        </div>
+      </div>
+
+      <div class="clocks">
+        <div class="clk">
+          <span class="clk-lab">SERVER <span id="clkServerTz" class="mono">GMT?</span></span>
+          <span class="clk-val mono live" id="clkServer">--:--:--</span>
+        </div>
+        <div class="clk">
+          <span class="clk-lab">LOCAL <span class="mono">PC</span></span>
+          <span class="clk-val mono" id="clkLocal">--:--:--</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="top-row top-sub">
+      <div class="pills" id="connPills">
+        <span class="pill" id="pillEa" data-tip="EA heartbeat: state.json was written less than 3s ago."><span class="pdot"></span>EA</span>
+        <span class="pill" id="pillSync" data-tip="in_sync: the EA has applied the config version the panel wrote.">SYNC</span>
+        <span class="pill" id="pillConn" data-tip="terminal.connected">LINK</span>
+        <span class="pill" id="pillTrade" data-tip="terminal.trade_allowed - AutoTrading button in MT5">TRADE</span>
+        <span class="pill" id="pillExperts" data-tip="terminal.expert_enabled - algo trading allowed for experts">EXPERTS</span>
+      </div>
+
+      <div class="acct" id="acct">
+        <div class="stat"><span class="stat-lab">ACCOUNT</span><span class="stat-val mono" id="accLogin">&mdash;</span></div>
+        <div class="stat"><span class="stat-lab">SERVER</span><span class="stat-val" id="accServer">&mdash;</span></div>
+        <div class="stat"><span class="stat-lab">BALANCE</span><span class="stat-val mono" id="accBal">&mdash;</span></div>
+        <div class="stat"><span class="stat-lab">EQUITY</span><span class="stat-val mono live" id="accEq">&mdash;</span></div>
+        <div class="stat"><span class="stat-lab">FLOATING P/L</span><span class="stat-val mono live" id="accFloat">&mdash;</span></div>
+        <div class="stat"><span class="stat-lab">FREE MARGIN</span><span class="stat-val mono live" id="accFree">&mdash;</span></div>
+        <div class="stat"><span class="stat-lab">LEVERAGE</span><span class="stat-val mono" id="accLev">&mdash;</span></div>
+        <div class="stat"><span class="stat-lab">MARGIN MODE</span><span class="stat-val" id="accMode">&mdash;</span></div>
+      </div>
+
+      <div class="savebox">
+        <span id="saveStatus" class="save save-idle" role="status" aria-live="polite">ready</span>
+        <span class="cfgver mono" id="cfgVerBox" data-tip="config_version written by the panel / seen by the EA">v&mdash; / &mdash;</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== BANNERS ==================== -->
+  <div id="banners" aria-live="polite"></div>
+
+  <!-- ==================== MAIN ==================== -->
+  <main id="main">
+    <div class="wrap">
+
+      <!-- ---------- EA empty state ---------- -->
+      <section class="card card-empty" id="eaEmpty" hidden>
+        <div class="empty-inner">
+          <svg class="empty-mark" viewBox="0 0 48 48" aria-hidden="true">
+            <circle cx="24" cy="24" r="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 5"/>
+            <path d="M24 14v14M24 33h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <div>
+            <h2 class="empty-title">Waiting for the EA</h2>
+            <p class="empty-body" id="eaEmptyBody">
+              The panel bridge is running but no <code>state.json</code> has appeared yet, so there is no
+              live price, no account and no level state. You can still edit and save the configuration below -
+              the EA will pick it up the moment it starts.
+            </p>
+            <ol class="empty-steps">
+              <li>Open an <b>XAUUSD</b> chart in MetaTrader 5 (IC Markets).</li>
+              <li>Drag <b>GoldStraddle</b> onto that chart. Allow algo trading in the dialog.</li>
+              <li>Switch the toolbar <b>AutoTrading</b> button on (it must be green).</li>
+              <li>Confirm the smiley in the chart corner is not sad and the Experts tab shows no errors.</li>
+            </ol>
+            <p class="empty-path">IPC folder: <span class="mono" id="eaEmptyDir">&mdash;</span></p>
+          </div>
+        </div>
+      </section>
+
+      <div class="col-main">
+
+        <!-- ---------- LEVELS ---------- -->
+        <section class="card" id="levelsCard">
+          <div class="card-head">
+            <h2><svg class="i" aria-hidden="true"><use href="#i-target"/></svg> Levels <span class="count mono" id="levelsCount">0/32</span></h2>
+            <div class="card-tools">
+              <div class="seg" role="group" aria-label="Level display order">
+                <input type="radio" name="lvlsort" id="sortManual" checked>
+                <label for="sortManual" data-tip="Show levels in config order. Reordering is enabled.">Manual</label>
+                <input type="radio" name="lvlsort" id="sortPrice">
+                <label for="sortPrice" data-tip="Sort by price, highest first, with a marker at the current price. Display only - the saved order is unchanged.">By price</label>
+              </div>
+              <button type="button" class="btn btn-ghost" id="rearmAllBtn" data-tip="rearm_all: reset every enabled level to armed / waiting and clear spent flags.">
+                <svg class="i" aria-hidden="true"><use href="#i-rearm"/></svg> Re-arm all
+              </button>
+            </div>
+          </div>
+
+          <div class="quickadd">
+            <label class="qa-lab" for="qaInput">Quick add</label>
+            <input type="text" id="qaInput" class="mono" autocomplete="off" spellcheck="false"
+                   placeholder="3548.50   or paste many:  3548.5, 3541.2, 3562.75"
+                   aria-describedby="qaHint">
+            <button type="button" class="btn btn-accent" id="qaAddBtn">
+              <svg class="i" aria-hidden="true"><use href="#i-plus"/></svg> Add
+            </button>
+            <span class="qa-hint" id="qaHint">Type a price and press Enter. Paste a list (newline, comma, space or tab separated) to add several at once.</span>
+          </div>
+
+          <div class="tbl-scroll">
+            <table class="tbl tbl-levels">
+              <thead>
+                <tr>
+                  <th scope="col" class="c-ord"><span class="vh">Order</span></th>
+                  <th scope="col" class="c-on" data-tip="Level enabled. Disabled levels are ignored entirely.">On</th>
+                  <th scope="col" class="c-price">Price</th>
+                  <th scope="col" class="c-label">Label</th>
+                  <th scope="col" class="c-dir" data-tip="either / from below (fire only when price rises into the level) / from above (fire only when price falls into it)">Direction</th>
+                  <th scope="col" class="c-dist num">Distance</th>
+                  <th scope="col" class="c-state">State</th>
+                  <th scope="col" class="c-act"><span class="vh">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody id="levelsBody"></tbody>
+            </table>
+          </div>
+          <p class="tbl-empty" id="levelsEmpty" hidden>No levels yet. Add one above - the EA cannot arm without at least one enabled level.</p>
+        </section>
+
+        <!-- ---------- LONG / SHORT ---------- -->
+        <div class="sides">
+
+          <section class="card side side-long" id="longCard">
+            <div class="card-head">
+              <h2>
+                <svg class="i side-glyph" aria-hidden="true"><use href="#i-caret-up"/></svg>
+                LONG leg
+              </h2>
+              <div class="card-tools">
+                <input type="checkbox" id="long_enabled" class="sw-in">
+                <label for="long_enabled" class="sw" data-tip="If only one leg is enabled the EA opens a single-sided trade, not a straddle."><span class="sw-knob"></span><span class="sw-lab">enabled</span></label>
+              </div>
+            </div>
+
+            <div class="side-body">
+              <div class="fgrid">
+                <div class="f f-span">
+                  <label for="long_lots">Lots</label>
+                  <input type="number" id="long_lots" class="mono" step="0.01" min="0.01" max="100" inputmode="decimal">
+                  <span class="f-res" id="long_lots_res"></span>
+                </div>
+
+                <div class="f">
+                  <label for="long_tp">Take profit <span class="u" data-unit>pips</span></label>
+                  <input type="number" id="long_tp" class="mono" step="1" min="0" inputmode="decimal">
+                  <span class="f-res" id="long_tp_res"></span>
+                </div>
+
+                <div class="f">
+                  <label for="long_sl">Stop loss <span class="u" data-unit>pips</span></label>
+                  <input type="number" id="long_sl" class="mono" step="1" min="0" inputmode="decimal">
+                  <span class="f-res" id="long_sl_res"></span>
+                </div>
+              </div>
+
+              <div class="be-block">
+                <div class="be-head">
+                  <input type="checkbox" id="long_be_enabled" class="sw-in">
+                  <label for="long_be_enabled" class="sw"><span class="sw-knob"></span><span class="sw-lab">Breakeven</span></label>
+                  <span class="be-note">fires once per position, never moves the stop backwards</span>
+                </div>
+                <div class="fgrid">
+                  <div class="f">
+                    <label for="long_be_trigger">BE trigger <span class="u" data-unit>pips</span></label>
+                    <input type="number" id="long_be_trigger" class="mono" step="1" min="0" inputmode="decimal">
+                    <span class="f-res" id="long_be_trigger_res"></span>
+                  </div>
+                  <div class="f">
+                    <label for="long_be_offset">BE offset <span class="u" data-unit>pips</span> <span class="signed" data-tip="Signed. Positive locks in profit, 0 is exact breakeven, negative leaves a small residual loss.">signed</span></label>
+                    <input type="number" id="long_be_offset" class="mono" step="1" min="-1000" max="1000" inputmode="decimal">
+                    <span class="f-res" id="long_be_offset_res"></span>
+                  </div>
+                </div>
+                <p class="be-explain" id="long_be_explain"></p>
+              </div>
+
+              <figure class="scale">
+                <svg id="long_scale" viewBox="0 0 400 92" class="scale-svg" role="img" aria-labelledby="long_scale_cap"></svg>
+                <figcaption id="long_scale_cap" class="scale-cap">Entry, breakeven trigger, breakeven stop and take profit for the long leg, drawn on the profit axis.</figcaption>
+              </figure>
+
+              <p class="preview" id="long_preview"></p>
+            </div>
+          </section>
+
+          <section class="card side side-short" id="shortCard">
+            <div class="card-head">
+              <h2>
+                <svg class="i side-glyph" aria-hidden="true"><use href="#i-caret-down"/></svg>
+                SHORT leg
+              </h2>
+              <div class="card-tools">
+                <input type="checkbox" id="short_enabled" class="sw-in">
+                <label for="short_enabled" class="sw" data-tip="If only one leg is enabled the EA opens a single-sided trade, not a straddle."><span class="sw-knob"></span><span class="sw-lab">enabled</span></label>
+              </div>
+            </div>
+
+            <div class="side-body">
+              <div class="fgrid">
+                <div class="f f-span">
+                  <label for="short_lots">Lots</label>
+                  <input type="number" id="short_lots" class="mono" step="0.01" min="0.01" max="100" inputmode="decimal">
+                  <span class="f-res" id="short_lots_res"></span>
+                </div>
+
+                <div class="f">
+                  <label for="short_tp">Take profit <span class="u" data-unit>pips</span></label>
+                  <input type="number" id="short_tp" class="mono" step="1" min="0" inputmode="decimal">
+                  <span class="f-res" id="short_tp_res"></span>
+                </div>
+
+                <div class="f">
+                  <label for="short_sl">Stop loss <span class="u" data-unit>pips</span></label>
+                  <input type="number" id="short_sl" class="mono" step="1" min="0" inputmode="decimal">
+                  <span class="f-res" id="short_sl_res"></span>
+                </div>
+              </div>
+
+              <div class="be-block">
+                <div class="be-head">
+                  <input type="checkbox" id="short_be_enabled" class="sw-in">
+                  <label for="short_be_enabled" class="sw"><span class="sw-knob"></span><span class="sw-lab">Breakeven</span></label>
+                  <span class="be-note">fires once per position, never moves the stop backwards</span>
+                </div>
+                <div class="fgrid">
+                  <div class="f">
+                    <label for="short_be_trigger">BE trigger <span class="u" data-unit>pips</span></label>
+                    <input type="number" id="short_be_trigger" class="mono" step="1" min="0" inputmode="decimal">
+                    <span class="f-res" id="short_be_trigger_res"></span>
+                  </div>
+                  <div class="f">
+                    <label for="short_be_offset">BE offset <span class="u" data-unit>pips</span> <span class="signed" data-tip="Signed. Positive locks in profit, 0 is exact breakeven, negative leaves a small residual loss.">signed</span></label>
+                    <input type="number" id="short_be_offset" class="mono" step="1" min="-1000" max="1000" inputmode="decimal">
+                    <span class="f-res" id="short_be_offset_res"></span>
+                  </div>
+                </div>
+                <p class="be-explain" id="short_be_explain"></p>
+              </div>
+
+              <figure class="scale">
+                <svg id="short_scale" viewBox="0 0 400 92" class="scale-svg" role="img" aria-labelledby="short_scale_cap"></svg>
+                <figcaption id="short_scale_cap" class="scale-cap">Mirrored: profit runs to the left because a short gains as price falls.</figcaption>
+              </figure>
+
+              <p class="preview" id="short_preview"></p>
+            </div>
+          </section>
+        </div>
+
+        <!-- ---------- POSITIONS ---------- -->
+        <section class="card" id="positionsCard">
+          <div class="card-head">
+            <h2><svg class="i" aria-hidden="true"><use href="#i-list"/></svg> Open positions <span class="count mono" id="posCount">0</span></h2>
+            <div class="card-tools">
+              <span class="muted small">only positions with this magic + symbol</span>
+            </div>
+          </div>
+          <div class="tbl-scroll">
+            <table class="tbl tbl-pos">
+              <thead>
+                <tr>
+                  <th scope="col" class="c-tkt">Ticket</th>
+                  <th scope="col" class="c-lvl">Level</th>
+                  <th scope="col" class="c-side">Side</th>
+                  <th scope="col" class="num">Lots</th>
+                  <th scope="col" class="num">Open</th>
+                  <th scope="col" class="num">Current</th>
+                  <th scope="col" class="num">SL</th>
+                  <th scope="col" class="num">TP</th>
+                  <th scope="col" class="num">P/L pips</th>
+                  <th scope="col" class="num">P/L money</th>
+                  <th scope="col" class="c-be" data-tip="Breakeven has already been applied to this position.">BE</th>
+                  <th scope="col" class="c-opened">Opened</th>
+                </tr>
+              </thead>
+              <tbody id="posBody" class="live"></tbody>
+              <tfoot>
+                <tr id="posTotals">
+                  <td colspan="3" class="tot-lab">Totals</td>
+                  <td class="num mono live" id="tot_lots">&mdash;</td>
+                  <td colspan="4"></td>
+                  <td class="num mono live" id="tot_pips">&mdash;</td>
+                  <td class="num mono live" id="tot_float">&mdash;</td>
+                  <td colspan="2" class="tot-extra">
+                    <span class="mono live" id="tot_session">closed &mdash;</span>
+                    <span class="mono live" id="tot_fires">fires &mdash;</span>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <p class="tbl-empty" id="posEmpty" hidden>No open EA positions.</p>
+        </section>
+      </div>
+
+      <!-- ==================== SIDEBAR ==================== -->
+      <aside class="col-side">
+
+        <!-- ---------- TIME WINDOW ---------- -->
+        <section class="card" id="windowCard">
+          <div class="card-head">
+            <h2><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg> Time window</h2>
+            <div class="card-tools">
+              <input type="checkbox" id="tw_enabled" class="sw-in">
+              <label for="tw_enabled" class="sw" data-tip="Off = no time restriction, levels can fire 24/5."><span class="sw-knob"></span><span class="sw-lab">enabled</span></label>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="winstate" id="winState">
+              <span class="win-led" id="winLed" aria-hidden="true"></span>
+              <span class="win-txt" id="winTxt">&mdash;</span>
+              <span class="win-next mono" id="winNext"></span>
+            </div>
+
+            <div class="fgrid fgrid-2">
+              <div class="f">
+                <label for="tw_start">Start</label>
+                <input type="time" id="tw_start" class="mono" step="60">
+              </div>
+              <div class="f">
+                <label for="tw_end">End</label>
+                <input type="time" id="tw_end" class="mono" step="60">
+              </div>
+            </div>
+            <p class="wrapnote" id="twWrapNote" hidden>
+              <svg class="i" aria-hidden="true"><use href="#i-info"/></svg>
+              <span>Spans midnight - start is later than end, so this window runs from the start time through to the end time the next morning. The day toggles apply to the day it <b>starts</b> on.</span>
+            </p>
+
+            <fieldset class="fs">
+              <legend>Compare against</legend>
+              <div class="seg seg-wide" role="group">
+                <input type="radio" name="tw_tz" id="tw_tz_server" value="server">
+                <label for="tw_tz_server">Server <span class="mono seg-sub" id="tzServerNow">--:--</span></label>
+                <input type="radio" name="tw_tz" id="tw_tz_local" value="local">
+                <label for="tw_tz_local">Local PC <span class="mono seg-sub" id="tzLocalNow">--:--</span></label>
+              </div>
+            </fieldset>
+
+            <fieldset class="fs">
+              <legend>Days <span class="muted small" id="daysTzNote">(server time)</span></legend>
+              <div class="days" id="twDays">
+                <input type="checkbox" id="day0"><label for="day0" title="Sunday">S</label>
+                <input type="checkbox" id="day1"><label for="day1" title="Monday">M</label>
+                <input type="checkbox" id="day2"><label for="day2" title="Tuesday">T</label>
+                <input type="checkbox" id="day3"><label for="day3" title="Wednesday">W</label>
+                <input type="checkbox" id="day4"><label for="day4" title="Thursday">T</label>
+                <input type="checkbox" id="day5"><label for="day5" title="Friday">F</label>
+                <input type="checkbox" id="day6"><label for="day6" title="Saturday">S</label>
+              </div>
+            </fieldset>
+
+            <p class="note">The window gates <b>entries only</b>. TP, SL and breakeven management run 24/5 regardless of the window or the master switch.</p>
+          </div>
+        </section>
+
+        <!-- ---------- ENTRY / EXECUTION ---------- -->
+        <section class="card" id="entryCard">
+          <div class="card-head">
+            <h2><svg class="i" aria-hidden="true"><use href="#i-bolt"/></svg> Entry &amp; execution</h2>
+          </div>
+          <div class="card-body">
+
+            <div class="f">
+              <label for="en_trigger_mode">Trigger mode</label>
+              <select id="en_trigger_mode">
+                <option value="cross">cross - arm on one side, fire when price crosses in</option>
+                <option value="touch">touch - fire whenever price is within tolerance</option>
+              </select>
+              <span class="f-res" id="en_trigger_res"></span>
+            </div>
+
+            <div class="f">
+              <label for="en_touch_tolerance">Touch tolerance <span class="u" data-unit>pips</span></label>
+              <input type="number" id="en_touch_tolerance" class="mono" step="0.1" min="0" inputmode="decimal">
+              <span class="f-res" id="en_touch_res"></span>
+            </div>
+
+            <div class="onecut">
+              <div class="oc-row">
+                <input type="checkbox" id="en_one_shot" class="sw-in">
+                <label for="en_one_shot" class="sw" data-tip="On: a level fires once then goes spent until you re-arm it. Off: it re-arms automatically after the cooldown."><span class="sw-knob"></span><span class="sw-lab">One shot</span></label>
+              </div>
+              <div class="f" id="cooldownField">
+                <label for="en_cooldown_sec">Cooldown <span class="u">sec</span></label>
+                <input type="number" id="en_cooldown_sec" class="mono" step="5" min="0" inputmode="numeric">
+                <span class="f-res" id="en_cooldown_res"></span>
+              </div>
+            </div>
+
+            <div class="fgrid fgrid-2">
+              <div class="f">
+                <label for="en_max_slippage_points">Max slippage <span class="u">pts</span></label>
+                <input type="number" id="en_max_slippage_points" class="mono" step="1" min="0" inputmode="numeric">
+              </div>
+              <div class="f">
+                <label for="en_max_spread_points">Max spread <span class="u">pts</span></label>
+                <input type="number" id="en_max_spread_points" class="mono" step="1" min="0" inputmode="numeric">
+                <span class="f-res" id="en_spread_res"></span>
+              </div>
+              <div class="f">
+                <label for="en_max_concurrent">Max concurrent</label>
+                <input type="number" id="en_max_concurrent" class="mono" step="1" min="0" inputmode="numeric">
+                <span class="f-res" id="en_conc_res"></span>
+              </div>
+              <div class="f">
+                <label for="cfg_magic">Magic</label>
+                <input type="number" id="cfg_magic" class="mono" step="1" min="1" max="2147483647" inputmode="numeric">
+              </div>
+            </div>
+
+            <hr class="rule">
+
+            <div class="f">
+              <label for="cfg_symbol">Symbol</label>
+              <input type="text" id="cfg_symbol" class="mono" autocomplete="off" spellcheck="false" maxlength="32">
+              <span class="f-res" id="symFoundRes"></span>
+            </div>
+            <div class="candidates" id="symCandidates" hidden>
+              <span class="cand-lab">Market Watch matches - click to use:</span>
+              <div class="cand-list" id="symCandList"></div>
+            </div>
+
+            <div class="fgrid fgrid-2">
+              <div class="f">
+                <label for="cfg_unit">Distance unit</label>
+                <select id="cfg_unit">
+                  <option value="pips">pips</option>
+                  <option value="points">points</option>
+                  <option value="price">price</option>
+                </select>
+              </div>
+              <div class="f">
+                <label for="cfg_pip_mode">Pip size</label>
+                <select id="cfg_pip_mode">
+                  <option value="auto">auto</option>
+                  <option value="manual">manual</option>
+                </select>
+              </div>
+              <div class="f" id="pipManualField">
+                <label for="cfg_pip_manual">Pip size (manual)</label>
+                <input type="number" id="cfg_pip_manual" class="mono" step="0.01" min="0" inputmode="decimal">
+              </div>
+              <div class="f f-static">
+                <label id="pipNoteLab">In effect</label>
+                <span class="f-static-val mono" id="pipNote" aria-labelledby="pipNoteLab">&mdash;</span>
+              </div>
+            </div>
+
+            <details class="symdet">
+              <summary>Symbol specification from the EA</summary>
+              <dl class="kv" id="symTable"></dl>
+            </details>
+          </div>
+        </section>
+
+        <!-- ---------- DANGER ---------- -->
+        <section class="card card-danger" id="dangerCard">
+          <div class="card-head">
+            <h2><svg class="i" aria-hidden="true"><use href="#i-alert"/></svg> Danger zone</h2>
+          </div>
+          <div class="card-body">
+            <p class="note note-danger">Commands run regardless of the time window or the master switch. Closing always works. Every button needs a second confirming click within 3 seconds.</p>
+            <div class="dz-grid">
+              <button type="button" class="btn btn-danger" id="btnCloseAll" data-confirm="Close ALL - confirm">Close all</button>
+              <button type="button" class="btn btn-danger btn-long" id="btnCloseLongs" data-confirm="Close longs - confirm">Close longs</button>
+              <button type="button" class="btn btn-danger btn-short" id="btnCloseShorts" data-confirm="Close shorts - confirm">Close shorts</button>
+            </div>
+            <button type="button" class="panic" id="btnPanic" aria-describedby="panicNote">
+              <span class="panic-fill" id="panicFill" aria-hidden="true"></span>
+              <span class="panic-lab" id="panicLab">
+                <svg class="i" aria-hidden="true"><use href="#i-power"/></svg>
+                PANIC
+              </span>
+              <span class="panic-sub" id="panicSub">hold 900 ms</span>
+            </button>
+            <p class="note" id="panicNote">PANIC closes everything and latches the EA so nothing new can open until you arm again from this panel.</p>
+          </div>
+        </section>
+
+        <!-- ---------- META ---------- -->
+        <section class="card" id="metaCard">
+          <div class="card-head">
+            <h2><svg class="i" aria-hidden="true"><use href="#i-info"/></svg> Bridge &amp; terminal</h2>
+          </div>
+          <div class="card-body">
+            <dl class="kv" id="metaTable"></dl>
+            <p class="lastcmd" id="lastCmd" hidden></p>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <!-- ==================== LOG DOCK ==================== -->
+  <section id="logdock" aria-label="Event log">
+    <div class="log-head">
+      <button type="button" class="log-toggle" id="logToggle" aria-expanded="true" aria-controls="logList">
+        <svg class="i chev" aria-hidden="true"><use href="#i-caret-down"/></svg>
+        <span>Log</span>
+      </button>
+      <span class="log-sub">newest first &middot; last <span class="mono" id="logCount">0</span> of 60 from the EA</span>
+      <div class="log-filters" role="group" aria-label="Filter log by level">
+        <input type="checkbox" id="lf_info" checked><label for="lf_info" class="lf lf-info">info</label>
+        <input type="checkbox" id="lf_trade" checked><label for="lf_trade" class="lf lf-trade">trade</label>
+        <input type="checkbox" id="lf_warn" checked><label for="lf_warn" class="lf lf-warn">warn</label>
+        <input type="checkbox" id="lf_error" checked><label for="lf_error" class="lf lf-error">error</label>
+      </div>
+    </div>
+    <ol class="log-list live" id="logList"></ol>
+  </section>
+</div>
+
+<div id="toasts" aria-live="polite" aria-atomic="false"></div>
+<div id="tip" role="tooltip" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>

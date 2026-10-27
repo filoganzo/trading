@@ -1,0 +1,19 @@
+{
+  "_comment": "Session definitions in UTC. Overlap regions are handled by priority order in lookups.",
+  "timezone": "UTC",
+  "sessions": [
+    { "name": "asia",          "start": "00:00", "end": "07:00", "priority": 1 },
+    { "name": "london_open",   "start": "07:00", "end": "09:00", "priority": 3 },
+    { "name": "london",        "start": "09:00", "end": "12:00", "priority": 2 },
+    { "name": "overlap_ln_ny", "start": "12:00", "end": "16:00", "priority": 4 },
+    { "name": "ny",            "start": "16:00", "end": "20:00", "priority": 3 },
+    { "name": "offhours",      "start": "20:00", "end": "24:00", "priority": 0 }
+  ],
+  "blackouts": {
+    "_comment": "News windows handled here once integrated. Minutes before/after event.",
+    "nfp_minutes_before": 15,
+    "nfp_minutes_after": 30,
+    "fomc_minutes_before": 10,
+    "fomc_minutes_after": 60
+  }
+}
